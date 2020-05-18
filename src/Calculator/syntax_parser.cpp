@@ -71,20 +71,12 @@ Node* SyntaxParser::parseLParenthesis() {
 }
 
 Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, const bool lp_exist) {
-    const auto [token, token_val] = lexer_.getToken();
-    if (lp_exist && token == Token::RP) {
+    std::optional<Node*> node = getNextOp(lp_exist);
+    if (!node.has_value()) {
         return lhs;
     }
 
-    if (token == Token::End) {
-        if (lp_exist) {
-            error("parseBinaryOp: expected RP");
-        }
-        return lhs;
-    }
-
-    Node* node = createBinaryOpNode(token);
-    return parseBinaryOp(lhs_priority, lhs, node, lp_exist);
+    return parseBinaryOp(lhs_priority, lhs, node.value(), lp_exist);
 }
 
 Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node, const bool lp_exist) {
@@ -110,34 +102,26 @@ Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node, const
         node->op2 = rhs;
         lhs = node;
 
-        const auto [next_token, next_token_val] = lexer_.getToken();
-        if (next_token == Token::End) {
-            if (lp_exist) {
-                error("parseBinaryOp: expected RP");
-            }
+        std::optional<Node*> next_node = getNextOp(lp_exist);
+        if (!next_node.has_value() || next_node.value() == nullptr) {
             return node;
         }
 
-        if (lp_exist && next_token == Token::RP) {
-            return node;
-        }
-
-        Node* next_node = createBinaryOpNode(next_token);
-        if (next_node == nullptr) {
-            return node;
-        }
-
-        const int next_priority = opPriority(next_node->op_type);
+        const int next_priority = opPriority(next_node.value()->op_type);
         if (priority < next_priority) {
-            rhs = parseBinaryOp(priority, rhs, next_node, lp_exist);
+            rhs = parseBinaryOp(priority, rhs, next_node.value(), lp_exist);
             if (rhs == nullptr) {
                 delete node;
                 return lhs;
             }
             node->op2 = rhs;
-        } else {
-            node = next_node;
+
+            next_node = getNextOp(lp_exist);
+            if (!next_node.has_value()) {
+                return node;
+            }
         }
+        node = next_node.value();
     }
 
     if (lp_exist) {
@@ -146,6 +130,22 @@ Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node, const
     }
 
     return lhs;
+}
+
+std::optional<Node*> SyntaxParser::getNextOp(const bool lp_exist) {
+    const auto [next_token, next_token_val] = lexer_.getToken();
+    if (next_token == Token::End) {
+        if (lp_exist) {
+            error("parseBinaryOp: expected RP");
+        }
+        return std::nullopt;
+    }
+
+    if (lp_exist && next_token == Token::RP) {
+        return std::nullopt;
+    }
+
+    return createBinaryOpNode(next_token);
 }
 
 Node* SyntaxParser::createValueNode(const double value) const {
