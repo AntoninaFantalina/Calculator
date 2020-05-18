@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include "lexer.h"
 #include "node.h"
 
@@ -22,8 +23,10 @@ private:
     Node* createBinaryOpNode(const Token token);
     Node* createOpNode(const OpType op_type) const;
 
+    int opPriority(const OpType op_type) const;
     void error(const std::string& message) const;
 
 private:
     Lexer& lexer_;
+    static std::map<OpType, int> priority_table_;
 };

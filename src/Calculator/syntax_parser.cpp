@@ -1,32 +1,16 @@
 #include <iostream>
-#include <map>
 #include <variant>
 #include <vector>
 #include "syntax_parser.h"
 #include "utils.h"
 
-namespace {
-int opPriority(const OpType op_type) {
-    if (op_type == OpType::Negate) {
-        std::cout << " NEGATE ";
-        return -1;
-    }
-    if (op_type == OpType::Assign) {
-        std::cout << " ASSIGN ";
-        return -1;
-    }
-
-    const std::map<OpType, int> priority_table 
-    {
-        {OpType::Plus, 1},
-        {OpType::Minus, 1},
-        {OpType::Mult, 2},
-        {OpType::Div, 2}
-    };
-    
-    return priority_table.at(op_type);
-}
-}
+std::map<OpType, int> SyntaxParser::priority_table_
+{
+    {OpType::Plus, 1},
+    {OpType::Minus, 1},
+    {OpType::Mult, 2},
+    {OpType::Div, 2}
+};
 
 SyntaxParser::SyntaxParser(Lexer& lexer)
     : lexer_(lexer) {
@@ -44,6 +28,11 @@ Node* SyntaxParser::parseExpression(const bool lp_exist) {
 Node* SyntaxParser::parsePrimary() {
     const auto [token, token_val] = lexer_.getToken();
     switch (token) {
+    case Token::Minus: {
+        Node* node = createOpNode(OpType::Negate);
+        node->op1 = parsePrimary();
+        return node;
+    }
     case Token::Name:
         return createNameNode(std::get<std::string>(*token_val));
     case Token::Number:
@@ -178,6 +167,20 @@ Node* SyntaxParser::createOpNode(const OpType op_type) const {
     node->type = op_type == OpType::Negate ? NodeType::UnaryOp : NodeType::BinaryOp;
     node->op_type = op_type;
     return node;
+}
+
+int SyntaxParser::opPriority(const OpType op_type) const {
+    if (op_type == OpType::Negate) {
+        error("unexpected op_type " + opTypeToString(op_type));
+        return -1;
+    }
+
+    if (op_type == OpType::Assign) {
+        error("unexpected op_type " + opTypeToString(op_type));
+        return -1;
+    }
+
+    return priority_table_.at(op_type);
 }
 
 void SyntaxParser::error(const std::string& message) const {
