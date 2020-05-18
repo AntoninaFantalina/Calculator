@@ -1,23 +1,27 @@
 #include <iostream>
 #include <variant>
-#include <vector>
 #include "syntax_parser.h"
 #include "utils.h"
 
 std::map<OpType, int> SyntaxParser::priority_table_
 {
-    {OpType::Plus, 1},
-    {OpType::Minus, 1},
-    {OpType::Mult, 2},
-    {OpType::Div, 2}
+    {OpType::Assign, 1},
+    {OpType::Plus, 2},
+    {OpType::Minus, 2},
+    {OpType::Mult, 3},
+    {OpType::Div, 3}
 };
 
 SyntaxParser::SyntaxParser(Lexer& lexer)
     : lexer_(lexer) {
 }
 
-Node* SyntaxParser::parse() {
-    return parseExpression();
+std::vector<Node*> SyntaxParser::parse() {
+    std::vector<Node*> nodes;
+    while (Node* node = parseExpression()) {
+        nodes.push_back(node);
+    }
+    return nodes;
 }
 
 Node* SyntaxParser::parseExpression(const bool lp_exist) {
@@ -118,7 +122,7 @@ Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node, const
 
 std::optional<Node*> SyntaxParser::getNextOp(const bool lp_exist) {
     const auto [next_token, next_token_val] = lexer_.getToken();
-    if (next_token == Token::End) {
+    if (next_token == Token::End || next_token == Token::Print) {
         if (lp_exist) {
             error("expected RP");
         }
@@ -156,6 +160,8 @@ Node* SyntaxParser::createBinaryOpNode(const Token token) {
         return createOpNode(OpType::Mult);
     case Token::Div:
         return createOpNode(OpType::Div);
+    case Token::Assign:
+        return createOpNode(OpType::Assign);
     default:
         error("unexpected token " + tokenToString(token));
         return nullptr;
@@ -171,11 +177,6 @@ Node* SyntaxParser::createOpNode(const OpType op_type) const {
 
 int SyntaxParser::opPriority(const OpType op_type) const {
     if (op_type == OpType::Negate) {
-        error("unexpected op_type " + opTypeToString(op_type));
-        return -1;
-    }
-
-    if (op_type == OpType::Assign) {
         error("unexpected op_type " + opTypeToString(op_type));
         return -1;
     }

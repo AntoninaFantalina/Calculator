@@ -8,4 +8,4 @@ std::string nodeTypeToString(const NodeType type);
 
 std::string opTypeToString(const OpType type);
 
-void printTree(Node* root, const std::string& indent = "");
+void printTree(const Node* root, const std::string& indent = "");

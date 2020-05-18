@@ -58,7 +58,7 @@ std::string opTypeToString(const OpType type) {
     }
 }
 
-void printTree(Node* node, const std::string& indent) {
+void printTree(const Node* node, const std::string& indent) {
     if (node == nullptr) {
         return;
     }

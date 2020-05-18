@@ -1,5 +1,7 @@
 #pragma once
 #include <map>
+#include <optional>
+#include <vector>
 #include "lexer.h"
 #include "node.h"
 
@@ -8,7 +10,7 @@ class SyntaxParser
 public:
     SyntaxParser(Lexer& lexer);
 
-    Node* parse();
+    std::vector<Node*> parse();
 
 private:
     Node* parseExpression(const bool lp_exist = false);
