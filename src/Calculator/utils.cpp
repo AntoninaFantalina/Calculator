@@ -77,6 +77,6 @@ void printTree(const Node* node, const std::string& indent) {
     }
     std::cout << message << std::endl;
 
-    printTree(node->op1, indent + " ");
-    printTree(node->op2, indent + " ");
+    printTree(node->op1, indent + "  ");
+    printTree(node->op2, indent + "  ");
 }

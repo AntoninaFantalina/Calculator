@@ -43,6 +43,9 @@ Node* SyntaxParser::parsePrimary() {
         return createValueNode(std::get<double>(*token_val));
     case Token::LP:
         return parseLParenthesis();
+    case Token::Print:
+    case Token::End:
+        return nullptr;
     default:
         error("unexpected token " + tokenToString(token));
         return nullptr;
