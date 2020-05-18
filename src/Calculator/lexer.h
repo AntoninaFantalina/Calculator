@@ -19,9 +19,12 @@ public:
 
     std::pair<Token, std::optional<TokenValue>> getToken();
 
+    std::string getCurrentString() const;
+
 private:
     const std::string& source_;
     const std::string::const_iterator begin_;
     const std::string::const_iterator end_;
+    std::string::const_iterator string_start_;
     std::string::const_iterator head_;
 };

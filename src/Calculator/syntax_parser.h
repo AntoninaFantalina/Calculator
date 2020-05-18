@@ -22,6 +22,8 @@ private:
     Node* createBinaryOpNode(const Token token);
     Node* createOpNode(const OpType op_type) const;
 
+    void error(const std::string& message) const;
+
 private:
     Lexer& lexer_;
 };

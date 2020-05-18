@@ -26,11 +26,6 @@ int opPriority(const OpType op_type) {
     
     return priority_table.at(op_type);
 }
-
-void error(const std::string& message) {
-    std::cout << "ERROR " << message << std::endl;
-}
-
 }
 
 SyntaxParser::SyntaxParser(Lexer& lexer)
@@ -56,7 +51,7 @@ Node* SyntaxParser::parsePrimary() {
     case Token::LP:
         return parseLParenthesis();
     default:
-        error("parsePrimary: unexpected token " + tokenToString(token));
+        error("unexpected token " + tokenToString(token));
         return nullptr;
     }
 }
@@ -125,7 +120,7 @@ Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node, const
     }
 
     if (lp_exist) {
-        error("parseBinaryOp: expected RP");
+        error("expected RP");
         return nullptr;
     }
 
@@ -136,7 +131,7 @@ std::optional<Node*> SyntaxParser::getNextOp(const bool lp_exist) {
     const auto [next_token, next_token_val] = lexer_.getToken();
     if (next_token == Token::End) {
         if (lp_exist) {
-            error("parseBinaryOp: expected RP");
+            error("expected RP");
         }
         return std::nullopt;
     }
@@ -173,7 +168,7 @@ Node* SyntaxParser::createBinaryOpNode(const Token token) {
     case Token::Div:
         return createOpNode(OpType::Div);
     default:
-        error("createBinaryOpNode: unexpected token " + tokenToString(token));
+        error("unexpected token " + tokenToString(token));
         return nullptr;
     }
 }
@@ -183,4 +178,9 @@ Node* SyntaxParser::createOpNode(const OpType op_type) const {
     node->type = op_type == OpType::Negate ? NodeType::UnaryOp : NodeType::BinaryOp;
     node->op_type = op_type;
     return node;
+}
+
+void SyntaxParser::error(const std::string& message) const {
+    std::cout << lexer_.getCurrentString() << std::endl;
+    std::cout << "ERROR: " << message << std::endl;
 }

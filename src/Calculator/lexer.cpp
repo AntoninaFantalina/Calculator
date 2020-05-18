@@ -5,6 +5,7 @@ Lexer::Lexer(const std::string& input)
     : source_(input)
     , begin_(input.begin())
     , end_(input.end())
+    , string_start_(input.begin())
     , head_(input.begin()) {
 }
 
@@ -23,7 +24,9 @@ std::pair<Token, std::optional<TokenValue>> Lexer::getToken() {
         case 0:
             return {Token::End, std::nullopt};
         case ';':
+            return {Token::Print, std::nullopt};
         case '\n':
+            string_start_ = head_;
             return {Token::Print, std::nullopt};
         case '*': case '/': case '+': case '-': case '(': case ')': case '=':
             return {Token(ch), std::nullopt};
@@ -48,4 +51,8 @@ std::pair<Token, std::optional<TokenValue>> Lexer::getToken() {
             // error
             return {Token::Print, std::nullopt};
     }
+}
+
+std::string Lexer::getCurrentString() const {
+    return {string_start_, head_};
 }
