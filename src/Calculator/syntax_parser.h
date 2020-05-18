@@ -13,12 +13,12 @@ public:
     std::vector<Node*> parse();
 
 private:
-    Node* parseExpression(const bool lp_exist = false);
+    Node* parseExpression();
     Node* parsePrimary();
     Node* parseLParenthesis();
-    Node* parseBinaryOp(int lhs_priority, Node* lhs, const bool lp_exist = false);
-    Node* parseBinaryOp(int lhs_priority, Node* lhs, Node* node, const bool lp_exist = false);
-    std::optional<Node*> getNextOp(const bool lp_exist);
+    Node* parseBinaryOp(int lhs_priority, Node* lhs);
+    Node* parseBinaryOp(int lhs_priority, Node* lhs, Node* node);
+    std::optional<Node*> getNextOp();
 
     Node* createValueNode(const double value) const;
     Node* createNameNode(const std::string& name) const;
@@ -31,4 +31,5 @@ private:
 private:
     Lexer& lexer_;
     static std::map<OpType, int> priority_table_;
+    size_t lp_count_ = 0;
 };
