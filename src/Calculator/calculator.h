@@ -3,8 +3,4 @@
 #include <vector>
 #include "node.h"
 
-class Calculator
-{
-public:
-    std::vector<Node*> compile(const std::string& input);
-};
+std::vector<Node*> calculate(const std::string& input);
