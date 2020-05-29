@@ -8,6 +8,7 @@ int main() {
     std::vector<Node*> nodes = calc.compile("x = 3; y = -x + 123 * (-(5 + 9 / 7));");
     for (const auto node : nodes) {
         printTree(node);
+        printExpression(node);
         std::cout << std::endl;
     }
 }

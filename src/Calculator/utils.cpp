@@ -1,6 +1,41 @@
 #include <iostream>
 #include "utils.h"
 
+namespace
+{
+
+void printExpressionRecursive(const Node* node) {
+    if (node == nullptr) {
+        return;
+    }
+    
+    switch (node->type) {
+    case NodeType::Value:
+        std::cout << std::to_string(node->number);
+        break;
+    case NodeType::Symbol:
+        std::cout << node->name;
+        break;
+    case NodeType::UnaryOp:
+        std::cout << "(";
+        std::cout << opTypeToString(node->op_type);
+        printExpressionRecursive(node->op1);
+        std::cout << ")";
+        break;
+    case NodeType::BinaryOp:
+        std::cout << "(";
+        printExpressionRecursive(node->op1);
+        std::cout << " " << opTypeToString(node->op_type) << " ";
+        printExpressionRecursive(node->op2);
+        std::cout << ")";
+        break;
+	default:
+		assert(0);
+    }
+}
+
+} // namespace
+
 std::string tokenToString(const Token token) {
     switch (token) {
     case Token::Name:
@@ -25,6 +60,8 @@ std::string tokenToString(const Token token) {
         return "LP";
     case Token::RP:
         return "RP";
+	default:
+		assert(0);
     }
 }
 
@@ -38,23 +75,27 @@ std::string nodeTypeToString(const NodeType type) {
         return "UnaryOp";
     case NodeType::BinaryOp:
         return "BinaryOp";
+	default:
+		assert(0);
     }
 }
 
 std::string opTypeToString(const OpType type) {
     switch (type) {
     case OpType::Assign:
-        return "Assign";
+        return "=";
     case OpType::Negate:
-        return "Negate";
+        return "-";
     case OpType::Plus:
-        return "Plus";
+        return "+";
     case OpType::Minus:
-        return "Minus";
+        return "-";
     case OpType::Mult:
-        return "Mult";
+        return "*";
     case OpType::Div:
-        return "Div";
+        return "/";
+	default:
+		assert(0);
     }
 }
 
@@ -63,20 +104,28 @@ void printTree(const Node* node, const std::string& indent) {
         return;
     }
     
-    std::string message = indent;
-    message += "type = " + nodeTypeToString(node->type);
+    std::cout << indent << "type = " << nodeTypeToString(node->type);
     switch (node->type) {
     case NodeType::Value:
-        message += ", number = " + std::to_string(node->number);
+        std::cout << ", number = " << std::to_string(node->number);
         break;
     case NodeType::Symbol:
-        message += ", name = " + node->name;
+        std::cout << ", name = " << node->name;
         break;
-    default:
-        message += ", op_type = " + opTypeToString(node->op_type);
+    case NodeType::UnaryOp:
+    case NodeType::BinaryOp:
+        std::cout << ", op_type = " << opTypeToString(node->op_type);
+        break;
+	default:
+		assert(0);
     }
-    std::cout << message << std::endl;
+    std::cout << std::endl;
 
     printTree(node->op1, indent + "  ");
     printTree(node->op2, indent + "  ");
+}
+
+void printExpression(const Node* node) {
+    printExpressionRecursive(node);
+    std::cout << std::endl;
 }
