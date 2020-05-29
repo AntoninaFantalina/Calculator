@@ -6,6 +6,8 @@ add_library(${MODULE_NAME}
   lexer.cpp
   lexer.h
   node.h
+  postprocessor.cpp
+  postprocessor.h
   syntax_parser.cpp
   syntax_parser.h
   utils.cpp

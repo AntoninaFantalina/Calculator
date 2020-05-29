@@ -6,7 +6,9 @@ enum class NodeType
     Value,
     Symbol,
     UnaryOp,
-    BinaryOp
+    BinaryOp,
+    NodePtrToNode,
+    NodePtrToVal
 };
 
 enum class OpType
@@ -27,4 +29,7 @@ struct Node
     OpType op_type; // if UnaryOp or BinaryOp
     Node* op1 = nullptr; // if UnaryOp or BinaryOp
     Node* op2 = nullptr; // if BinaryOp
+    
+	Node** binded_node; // if NodePtrToNode
+	int* binded_number; // if NodePtrToVal
 };
