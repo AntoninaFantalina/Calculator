@@ -16,9 +16,9 @@ SyntaxParser::SyntaxParser(Lexer& lexer)
     : lexer_(lexer) {
 }
 
-std::vector<Node*> SyntaxParser::parse() {
-    std::vector<Node*> nodes;
-    while (Node* node = parseExpression()) {
+std::vector<const Node*> SyntaxParser::parse() {
+    std::vector<const Node*> nodes;
+    while (const Node* node = parseExpression()) {
         nodes.push_back(node);
     }
     return nodes;
@@ -33,14 +33,12 @@ Node* SyntaxParser::parsePrimary() {
     const auto [token, token_val] = lexer_.getToken();
     switch (token) {
     case Token::Minus: {
-        Node* node = createOpNode(OpType::Negate);
-        node->op1 = parsePrimary();
-        return node;
+        return new Node(OpType::Negate, parsePrimary());
     }
     case Token::Name:
-        return createNameNode(std::get<std::string>(*token_val));
+        return new Node(createNameNode(std::get<std::string>(*token_val)));
     case Token::Number:
-        return createNumberNode(std::get<int64_t>(*token_val));
+        return new Node(createNumberNode(std::get<int64_t>(*token_val)));
     case Token::LP:
         return parseLParenthesis();
     case Token::Print:
@@ -77,7 +75,7 @@ Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node) {
     }
 
     while (node) {
-        const int priority = opPriority(node->op_type);
+        const int priority = opPriority(node->op_type_);
         
         if (priority < lhs_priority) {
             delete node;
@@ -90,8 +88,8 @@ Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node) {
             return lhs;
         }
 
-        node->op1 = lhs;
-        node->op2 = rhs;
+        node->op1_ = lhs;
+        node->op2_ = rhs;
         lhs = node;
 
         std::optional<Node*> next_node = getNextOp();
@@ -99,14 +97,14 @@ Node* SyntaxParser::parseBinaryOp(int lhs_priority, Node* lhs, Node* node) {
             return node;
         }
 
-        const int next_priority = opPriority(next_node.value()->op_type);
+        const int next_priority = opPriority(next_node.value()->op_type_);
         if (priority < next_priority) {
             rhs = parseBinaryOp(priority, rhs, next_node.value());
             if (rhs == nullptr) {
                 delete node;
                 return lhs;
             }
-            node->op2 = rhs;
+            node->op2_ = rhs;
 
             next_node = getNextOp();
             if (!next_node.has_value()) {
@@ -145,15 +143,15 @@ std::optional<Node*> SyntaxParser::getNextOp() {
 Node* SyntaxParser::createBinaryOpNode(const Token token) {
     switch (token) {
     case Token::Plus:
-        return createOpNode(OpType::Plus);
+        return new Node(OpType::Plus);
     case Token::Minus:
-        return createOpNode(OpType::Minus);
+        return new Node(OpType::Minus);
     case Token::Mult:
-        return createOpNode(OpType::Mult);
+        return new Node(OpType::Mult);
     case Token::Div:
-        return createOpNode(OpType::Div);
+        return new Node(OpType::Div);
     case Token::Assign:
-        return createOpNode(OpType::Assign);
+        return new Node(OpType::Assign);
     default:
         error("unexpected token " + tokenToString(token));
         return nullptr;

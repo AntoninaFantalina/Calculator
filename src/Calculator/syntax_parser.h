@@ -10,7 +10,7 @@ class SyntaxParser
 public:
     SyntaxParser(Lexer& lexer);
 
-    std::vector<Node*> parse();
+    std::vector<const Node*> parse();
 
 private:
     Node* parseExpression();

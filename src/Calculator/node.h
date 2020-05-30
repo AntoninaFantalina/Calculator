@@ -23,19 +23,20 @@ enum class OpType
 
 struct Node
 {
-    NodeType type;
-    int64_t number; // if Number
-    std::string name; // if Name
-    OpType op_type; // if UnaryOp or BinaryOp
-    Node* op1 = nullptr; // if UnaryOp or BinaryOp
-    Node* op2 = nullptr; // if BinaryOp
+    NodeType type_;
+    int64_t number_ = 0; // if Number
+    std::string name_; // if Name
 
-	Node** binded_node; // if NodePtrToNode
-	int64_t* binded_number; // if NodePtrToNumber
+    OpType op_type_; // if UnaryOp or BinaryOp
+    const Node* op1_ = nullptr; // if UnaryOp or BinaryOp
+    const Node* op2_ = nullptr; // if BinaryOp
+
+	const Node** binded_node_ = nullptr; // if NodePtrToNode
+	int64_t* binded_number_ = nullptr; // if NodePtrToNumber
+
+    Node(const NodeType type);
+    Node(const OpType op_type, const Node* op1 = nullptr, const Node* op2 = nullptr);
 };
 
-Node* createNumberNode(const int64_t number);
-Node* createNameNode(const std::string& name);
-Node* createOpNode(const OpType op_type);
-Node* createUnaryOpNode(const OpType op_type, Node* op1 = nullptr);
-Node* createBinaryOpNode(const OpType op_type, Node* op1 = nullptr, Node* op2 = nullptr);
+Node createNumberNode(const int64_t number);
+Node createNameNode(const std::string& name);

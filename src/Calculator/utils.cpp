@@ -64,55 +64,51 @@ std::string opTypeToString(const OpType type) {
     }
 }
 
-void printTree(const Node* node, const std::string& indent) {
-    if (node == nullptr) {
-        return;
-    }
-    
-    std::cout << indent << "type = " << nodeTypeToString(node->type);
-    switch (node->type) {
+void printTree(const Node& node, const std::string& indent) {
+    std::cout << indent << "type = " << nodeTypeToString(node.type_);
+    switch (node.type_) {
     case NodeType::Number:
-        std::cout << ", number = " << std::to_string(node->number);
+        std::cout << ", number = " << std::to_string(node.number_);
         break;
     case NodeType::Name:
-        std::cout << ", name = " << node->name;
+        std::cout << ", name = " << node.name_;
         break;
     case NodeType::UnaryOp:
     case NodeType::BinaryOp:
-        std::cout << ", op_type = " << opTypeToString(node->op_type);
+        std::cout << ", op_type = " << opTypeToString(node.op_type_);
         break;
 	default:
 		assert(0);
     }
     std::cout << std::endl;
 
-    printTree(node->op1, indent + "  ");
-    printTree(node->op2, indent + "  ");
+    if (node.op1_) {
+        printTree(*node.op1_, indent + "  ");
+    }
+    if (node.op2_) {
+        printTree(*node.op2_, indent + "  ");
+    }
 }
 
-void printExpression(const Node* node) {
-    if (node == nullptr) {
-        return;
-    }
-    
-    switch (node->type) {
+void printExpression(const Node& node) {
+    switch (node.type_) {
     case NodeType::Number:
-        std::cout << std::to_string(node->number);
+        std::cout << std::to_string(node.number_);
         break;
     case NodeType::Name:
-        std::cout << node->name;
+        std::cout << node.name_;
         break;
     case NodeType::UnaryOp:
         std::cout << "(";
-        std::cout << opTypeToString(node->op_type);
-        printExpression(node->op1);
+        std::cout << opTypeToString(node.op_type_);
+        printExpression(*node.op1_);
         std::cout << ")";
         break;
     case NodeType::BinaryOp:
         std::cout << "(";
-        printExpression(node->op1);
-        std::cout << " " << opTypeToString(node->op_type) << " ";
-        printExpression(node->op2);
+        printExpression(*node.op1_);
+        std::cout << " " << opTypeToString(node.op_type_) << " ";
+        printExpression(*node.op2_);
         std::cout << ")";
         break;
 	default:

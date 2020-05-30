@@ -3,4 +3,4 @@
 #include <vector>
 #include "node.h"
 
-std::vector<Node*> calculate(const std::string& input);
+std::vector<const Node*> calculate(const std::string& input);
