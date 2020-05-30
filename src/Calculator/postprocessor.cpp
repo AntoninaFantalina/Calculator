@@ -156,13 +156,22 @@ Node PostProcessor::reduceMult(const Node& node) {
 }
 
 Node PostProcessor::reduceDiv(const Node& node) {
+	// (n / m) -> k, if n = m * k
+	int64_t n, m;
+	Node n_node = bindNumber(&n);
+	Node m_node = bindNumber(&m);
+	Node n_div_m = Node(OpType::Div, &n_node, &m_node);
+	if (match(node, n_div_m) && n % m == 0) {
+		Node result = createNumberNode(n / m);
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
 	// (X/n)/m -> X/(n*m)
 	const Node* X = nullptr;
-	int64_t n, m;
 	Node x_node = bindNode(&X);
-	Node n_node = bindNumber(&n);
 	Node x_div_n = Node(OpType::Div, &x_node, &n_node);
-	Node m_node = bindNumber(&m);
 	Node div_node = Node(OpType::Div, &x_div_n, &m_node);
 	if (match(node, div_node)) {
 		Node result = Node(OpType::Div, X, new Node(createNumberNode(n * m)));
