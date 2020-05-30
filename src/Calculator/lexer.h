@@ -10,7 +10,7 @@ enum class Token
     Print=';', Assign='=', LP='(', RP=')'
 };
 
-using TokenValue = std::variant<double, std::string>;
+using TokenValue = std::variant<int64_t, std::string>;
 
 class Lexer
 {

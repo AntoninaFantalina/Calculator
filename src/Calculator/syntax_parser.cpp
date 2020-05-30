@@ -40,7 +40,7 @@ Node* SyntaxParser::parsePrimary() {
     case Token::Name:
         return createNameNode(std::get<std::string>(*token_val));
     case Token::Number:
-        return createValueNode(std::get<double>(*token_val));
+        return createNumberNode(std::get<int64_t>(*token_val));
     case Token::LP:
         return parseLParenthesis();
     case Token::Print:
@@ -142,20 +142,6 @@ std::optional<Node*> SyntaxParser::getNextOp() {
     return createBinaryOpNode(next_token);
 }
 
-Node* SyntaxParser::createValueNode(const double value) const {
-    Node* node = new Node();
-    node->type = NodeType::Value;
-    node->number = value;
-    return node;
-}
-
-Node* SyntaxParser::createNameNode(const std::string& name) const {
-    Node* node = new Node();
-    node->type = NodeType::Symbol;
-    node->name = name;
-    return node;
-}
-
 Node* SyntaxParser::createBinaryOpNode(const Token token) {
     switch (token) {
     case Token::Plus:
@@ -172,13 +158,6 @@ Node* SyntaxParser::createBinaryOpNode(const Token token) {
         error("unexpected token " + tokenToString(token));
         return nullptr;
     }
-}
-
-Node* SyntaxParser::createOpNode(const OpType op_type) const {
-    Node* node = new Node();
-    node->type = op_type == OpType::Negate ? NodeType::UnaryOp : NodeType::BinaryOp;
-    node->op_type = op_type;
-    return node;
 }
 
 int SyntaxParser::opPriority(const OpType op_type) const {

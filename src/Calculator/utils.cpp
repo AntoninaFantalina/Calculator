@@ -32,10 +32,10 @@ std::string tokenToString(const Token token) {
 
 std::string nodeTypeToString(const NodeType type) {
     switch (type) {
-    case NodeType::Value:
-        return "Value";
-    case NodeType::Symbol:
-        return "Symbol";
+    case NodeType::Number:
+        return "Number";
+    case NodeType::Name:
+        return "Name";
     case NodeType::UnaryOp:
         return "UnaryOp";
     case NodeType::BinaryOp:
@@ -71,10 +71,10 @@ void printTree(const Node* node, const std::string& indent) {
     
     std::cout << indent << "type = " << nodeTypeToString(node->type);
     switch (node->type) {
-    case NodeType::Value:
+    case NodeType::Number:
         std::cout << ", number = " << std::to_string(node->number);
         break;
-    case NodeType::Symbol:
+    case NodeType::Name:
         std::cout << ", name = " << node->name;
         break;
     case NodeType::UnaryOp:
@@ -96,10 +96,10 @@ void printExpression(const Node* node) {
     }
     
     switch (node->type) {
-    case NodeType::Value:
+    case NodeType::Number:
         std::cout << std::to_string(node->number);
         break;
-    case NodeType::Symbol:
+    case NodeType::Name:
         std::cout << node->name;
         break;
     case NodeType::UnaryOp:

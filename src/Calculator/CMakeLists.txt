@@ -5,6 +5,7 @@ add_library(${MODULE_NAME}
   calculator.h
   lexer.cpp
   lexer.h
+  node.cpp
   node.h
   postprocessor.cpp
   postprocessor.h

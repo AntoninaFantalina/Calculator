@@ -16,42 +16,15 @@ Node* dbgPrintReducedExpr(const char* function_name, Node* in, Node* out) {
 	return out;
 }
 
-Node* createValueNode(const double value) {
-    Node* node = new Node();
-    node->type = NodeType::Value;
-    node->number = value;
-    return node;
-}
-
-Node* createOpNode(const OpType op_type) {
-    Node* node = new Node();
-    node->type = op_type == OpType::Negate ? NodeType::UnaryOp : NodeType::BinaryOp;
-    node->op_type = op_type;
-    return node;
-}
-
-Node* createUnaryOpNode(const OpType op_type, Node* op1) {
-	Node* node = createOpNode(op_type);
-	node->op1 = op1;
-    return node;
-}
-
-Node* createBinaryOpNode(const OpType op_type, Node* op1, Node* op2) {
-	Node* node = createOpNode(op_type);
-	node->op1 = op1;
-	node->op2 = op2;
-    return node;
-}
-
 bool isEqual(Node* n1, Node* n2) {
 	if (n1->type != n2->type) {
 		return false;
 	}
 
 	switch (n1->type) {
-	case NodeType::Symbol:
+	case NodeType::Name:
 		return n1->name == n2->name;
-	case NodeType::Value:
+	case NodeType::Number:
 		return n1->number == n2->number;
 	case NodeType::UnaryOp:
 	case NodeType::BinaryOp:
@@ -73,10 +46,10 @@ bool isEqual(Node* n1, Node* n2) {
 bool match(Node* node, Node* pat)
 {
 	switch (pat->type) {
-	case NodeType::Symbol:
+	case NodeType::Name:
 		return isEqual(node, pat);
 
-	case NodeType::Value:
+	case NodeType::Number:
 		return isEqual(node, pat);
 
 	case NodeType::UnaryOp:
@@ -97,8 +70,8 @@ bool match(Node* node, Node* pat)
 	case NodeType::NodePtrToNode:
 		*pat->binded_node = node;
 		return true;
-	case NodeType::NodePtrToVal:
-		if (node->type != NodeType::Value) {
+	case NodeType::NodePtrToNumber:
+		if (node->type != NodeType::Number) {
 			return false;
 		}
 		*pat->binded_number = node->number;
@@ -118,40 +91,38 @@ bool matchComm(Node* node, OpType op_type, Node* pat1, Node* pat2) {
 	return false;
 }
 
-Node* bindNode(Node** in)
-{
+Node* bindNode(Node** in) {
 	Node* node = new Node();
 	node->type = NodeType::NodePtrToNode;
 	node->binded_node = in;
 	return node;
 }
 
-Node* bindValue(int* number)
-{
+Node* bindNumber(int64_t* number) {
 	Node* node = new Node();
-	node->type = NodeType::NodePtrToVal;
+	node->type = NodeType::NodePtrToNumber;
 	node->binded_number = number;
 	return node;
 }
 
 Node* reduceMult(Node* node) {
-	Node* X, *X1, *X2;
-	int val_n, val_m;
-
+	Node* X1;
+	int64_t n, m;
 	// (commutative) (X*n)*m -> X*(n*m)
 	if (matchComm(node,
 	              OpType::Mult,
-				  createBinaryOpNode(OpType::Mult, bindNode(&X), bindValue(&val_n)),
-				  bindValue(&val_m))) {
-		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X, createValueNode(val_n*val_m)));
+				  createBinaryOpNode(OpType::Mult, bindNode(&X1), bindNumber(&n)),
+				  bindNumber(&m))) {
+		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X1, createNumberNode(n * m)));
 	}
 
+	Node* X2;
 	// (X*n)*(X*m) -> X*(n*m)
 	if (match(node, createBinaryOpNode(OpType::Mult, 
-					                   createBinaryOpNode(OpType::Mult, bindNode(&X1), bindValue(&val_m)),
-									   createBinaryOpNode(OpType::Mult, bindNode(&X2), bindValue(&val_n))))
+					                   createBinaryOpNode(OpType::Mult, bindNode(&X1), bindNumber(&m)),
+									   createBinaryOpNode(OpType::Mult, bindNode(&X2), bindNumber(&n))))
 		&& isEqual(X1, X2)) {
-		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X1, createValueNode(val_m*val_n)));
+		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X1, createNumberNode(m * n)));
 	}
 
 	return node;
@@ -160,49 +131,51 @@ Node* reduceMult(Node* node) {
 Node* reduceDiv(Node* node) {
 	// (X/n)/m -> X/(n*m)
 	Node* X;
-	int val_n, val_m;
+	int64_t n, m;
 	if (match(node, 
 	            createBinaryOpNode(
 					OpType::Div,
-					createBinaryOpNode(OpType::Div, bindNode(&X), bindValue(&val_n)),
-					bindValue(&val_m)))) {
-		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Div, X, createValueNode(val_n*val_m)));
+					createBinaryOpNode(OpType::Div, bindNode(&X), bindNumber(&n)),
+					bindNumber(&m)))) {
+		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Div, X, createNumberNode(n * m)));
 	}
 	return node;
 }
 
 Node* reduceAdd(Node* node) {
 	// X+X -> X*2
-	if (node->type == NodeType::BinaryOp && node->op_type == OpType::Plus && isEqual(node->op1, node->op2)) {
-		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, node->op1, createValueNode(2)));
-	}
-
-	Node *X1, *X2;
-	int val_n, val_m;
-	// (commutative) (X*n)+X -> X*(n+1)
-	if (matchComm(node, 
-	              OpType::Plus,
-				  createBinaryOpNode(OpType::Mult, bindNode(&X1), bindValue(&val_n)),
-				  bindNode(&X2)) &&
-			isEqual(X1, X2)) {
-		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X1, createValueNode(val_n+1)));
+	if (node->type == NodeType::BinaryOp &&
+	    node->op_type == OpType::Plus &&
+		isEqual(node->op1, node->op2)) {
+		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, node->op1, createNumberNode(2)));
 	}
 
 	// (commutative) (X+n)+m -> X+(n+m)
-	Node* X;
+	Node* X1;
+	int64_t n, m;
 	if (matchComm(node,
 	              OpType::Plus,
-				  createBinaryOpNode(OpType::Plus, bindNode(&X), bindValue(&val_n)),
-				  bindValue(&val_m))) {
-		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Plus, X, createValueNode(val_n+val_m)));
+				  createBinaryOpNode(OpType::Plus, bindNode(&X1), bindNumber(&n)),
+				  bindNumber(&m))) {
+		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Plus, X1, createNumberNode(n + m)));
+	}
+
+	Node* X2;
+	// (commutative) (X*n)+X -> X*(n+1)
+	if (matchComm(node, 
+	              OpType::Plus,
+				  createBinaryOpNode(OpType::Mult, bindNode(&X1), bindNumber(&n)),
+				  bindNode(&X2)) &&
+			isEqual(X1, X2)) {
+		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X1, createNumberNode(n + 1)));
 	}
 
 	// (X*n)+(X*m) -> X*(n+m)
 	if (match(node, createBinaryOpNode(OpType::Plus, 
-					                   createBinaryOpNode(OpType::Mult, bindNode(&X1), bindValue(&val_n)),
-									   createBinaryOpNode(OpType::Mult, bindNode(&X2), bindValue(&val_m)))) &&
+					                   createBinaryOpNode(OpType::Mult, bindNode(&X1), bindNumber(&n)),
+									   createBinaryOpNode(OpType::Mult, bindNode(&X2), bindNumber(&m)))) &&
 		isEqual(X1, X2)) {
-		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X1, createValueNode(val_n+val_m)));
+		node = dbgPrintReducedExpr(__FUNCTION__, node, createBinaryOpNode(OpType::Mult, X1, createNumberNode(n + m)));
 	}
 
 	return node;

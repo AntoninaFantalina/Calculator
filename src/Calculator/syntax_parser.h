@@ -20,10 +20,7 @@ private:
     Node* parseBinaryOp(int lhs_priority, Node* lhs, Node* node);
     std::optional<Node*> getNextOp();
 
-    Node* createValueNode(const double value) const;
-    Node* createNameNode(const std::string& name) const;
     Node* createBinaryOpNode(const Token token);
-    Node* createOpNode(const OpType op_type) const;
 
     int opPriority(const OpType op_type) const;
     void error(const std::string& message) const;

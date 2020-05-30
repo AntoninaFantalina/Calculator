@@ -36,7 +36,7 @@ std::pair<Token, std::optional<TokenValue>> Lexer::getToken() {
             while (head_ != end_ && isdigit(*head_)) {
                 ++head_;
             }
-            const double number_value = std::stod(std::string{start, head_});
+            const int64_t number_value = std::stoi(std::string{start, head_});
             return {Token::Number, number_value};
         }
         default:
