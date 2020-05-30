@@ -138,15 +138,35 @@ Node PostProcessor::reduceStep(const Node& node) {
 }
 
 Node PostProcessor::reduceMult(const Node& node) {
+	// n*m -> k, k = n * m
+	int64_t n, m;
+	Node n_node = bindNumber(&n);
+	Node m_node = bindNumber(&m);
+	Node n_mul_m = Node(OpType::Mult, &n_node, &m_node);
+	if (match(node, n_mul_m)) {
+		Node result = createNumberNode(n * m);
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
 	// (commutative) (X*n)*m -> X*(n*m)
 	const Node* X1 = nullptr;
-	int64_t n, m;
 	Node x1_node = bindNode(&X1);
-	Node n_node = bindNumber(&n);
 	Node x1_mul_n = Node(OpType::Mult, &x1_node, &n_node);
-	Node m_node = bindNumber(&m);
 	if (matchComm(node, OpType::Mult, x1_mul_n, m_node)) {
 		Node result = Node(OpType::Mult, X1, new Node(createNumberNode(n * m)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// X1*(-X2) -> (-(X1*X2))
+	const Node* X2 = nullptr;
+	Node x2_node = bindNode(&X2);
+	Node neg_x2 = Node(OpType::Negate, &x2_node);
+	if (matchComm(node, OpType::Mult, x1_node, neg_x2)) {
+		Node result = Node(OpType::Negate, new Node(OpType::Mult, X1, X2));
 		logReduce(__FUNCTION__, node, result);
 		reduced_something_ = true;
 		return result;
@@ -192,13 +212,22 @@ Node PostProcessor::reduceAdd(const Node& node) {
 		return result;
 	}
 
+	// n+m -> k, k = n + m
+	int64_t n, m;
+	Node n_node = bindNumber(&n);
+	Node m_node = bindNumber(&m);
+	Node n_plus_m = Node(OpType::Plus, &n_node, &m_node);
+	if (match(node, n_plus_m)) {
+		Node result = createNumberNode(n + m);
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
 	// (commutative) (X+n)+m -> X+(n+m)
 	const Node* X1 = nullptr;
-	int64_t n, m;
 	Node x1_node = bindNode(&X1);
-	Node n_node = bindNumber(&n);
 	Node x1_plus_n = Node(OpType::Plus, &x1_node, &n_node);
-	Node m_node = bindNumber(&m);
 	if (matchComm(node, OpType::Plus, x1_plus_n, m_node)) {
 		Node result = Node(OpType::Plus, X1, new Node(createNumberNode(n + m)));
 		logReduce(__FUNCTION__, node, result);
