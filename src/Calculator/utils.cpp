@@ -1,41 +1,6 @@
 #include <iostream>
 #include "utils.h"
 
-namespace
-{
-
-void printExpressionRecursive(const Node* node) {
-    if (node == nullptr) {
-        return;
-    }
-    
-    switch (node->type) {
-    case NodeType::Value:
-        std::cout << std::to_string(node->number);
-        break;
-    case NodeType::Symbol:
-        std::cout << node->name;
-        break;
-    case NodeType::UnaryOp:
-        std::cout << "(";
-        std::cout << opTypeToString(node->op_type);
-        printExpressionRecursive(node->op1);
-        std::cout << ")";
-        break;
-    case NodeType::BinaryOp:
-        std::cout << "(";
-        printExpressionRecursive(node->op1);
-        std::cout << " " << opTypeToString(node->op_type) << " ";
-        printExpressionRecursive(node->op2);
-        std::cout << ")";
-        break;
-	default:
-		assert(0);
-    }
-}
-
-} // namespace
-
 std::string tokenToString(const Token token) {
     switch (token) {
     case Token::Name:
@@ -126,6 +91,31 @@ void printTree(const Node* node, const std::string& indent) {
 }
 
 void printExpression(const Node* node) {
-    printExpressionRecursive(node);
-    std::cout << std::endl;
+    if (node == nullptr) {
+        return;
+    }
+    
+    switch (node->type) {
+    case NodeType::Value:
+        std::cout << std::to_string(node->number);
+        break;
+    case NodeType::Symbol:
+        std::cout << node->name;
+        break;
+    case NodeType::UnaryOp:
+        std::cout << "(";
+        std::cout << opTypeToString(node->op_type);
+        printExpression(node->op1);
+        std::cout << ")";
+        break;
+    case NodeType::BinaryOp:
+        std::cout << "(";
+        printExpression(node->op1);
+        std::cout << " " << opTypeToString(node->op_type) << " ";
+        printExpression(node->op2);
+        std::cout << ")";
+        break;
+	default:
+		assert(0);
+    }
 }

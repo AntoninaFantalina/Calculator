@@ -6,15 +6,13 @@
 namespace
 {
 
-Node* dbgPrintReducedExpr(const char *fn, Node* in, Node* out) {
-	printf("reduction in %s(): ", fn);
+Node* dbgPrintReducedExpr(const char* function_name, Node* in, Node* out) {
+	std::cout << "reduction in " << function_name << "(): ";
 	printExpression(in);
-	printf(" -> ");
+	std::cout << " -> ";
 	printExpression(out);
-	printf("\n");
-
+	std::cout << std::endl;
 	// bool reduced_something=true;
-	
 	return out;
 }
 
@@ -248,6 +246,7 @@ std::vector<Node*> reduce(std::vector<Node*> nodes) {
 			reduced_something = false;
 			std::cout << "step " << step << ". going to reduce ";
 			printExpression(node);
+			std::cout << std::endl;
 			node = reduceStep(node);
 		}
 		result.push_back(node);
