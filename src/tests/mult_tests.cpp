@@ -79,7 +79,7 @@ TEST(MultTest, X1_Mult_Neg_X2) {
     std::vector<const Node*> nodes = calculate("x1 * (-x2)");
     ASSERT_EQ(nodes.size(), 1u);
     ASSERT_TRUE(nodes.front() != nullptr);
-    ASSERT_EQ(convertExpression(*nodes.front()), "(-(x1 * x2))");
+    ASSERT_EQ(convertExpression(*nodes.front()), "(-(x2 * x1))");
 }
 
 TEST(MultTest, Neg_X1_Mult_X2_2) {

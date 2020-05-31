@@ -76,7 +76,7 @@ bool matchComm(const Node& node, OpType op_type, Node& pat1, Node& pat2) {
 	if (match(node, pat)) {
 		return true;
 	}
-	pat = Node(op_type, &pat1, &pat2);
+	pat = Node(op_type, &pat2, &pat1);
 	if (match(node, pat)) {
 		return true;
 	}
@@ -136,7 +136,7 @@ Node PostProcessor::reduceStep(const Node& node) {
 
 Node PostProcessor::reduceMult(const Node& node) {
 	// n*m -> k, k = n * m
-	int64_t n, m;
+	int64_t n = 0, m = 0;
 	Node n_node = bindNumber(&n);
 	Node m_node = bindNumber(&m);
 	Node n_mul_m = Node(OpType::Mult, &n_node, &m_node);
@@ -147,10 +147,37 @@ Node PostProcessor::reduceMult(const Node& node) {
 		return result;
 	}
 
-	// (commutative) (X*n)*m -> X*(n*m)
+	// replace n*X -> X*n
 	const Node* X1 = nullptr;
 	Node x1_node = bindNode(&X1);
+	Node n_mul_x1 = Node(OpType::Mult, &n_node, &x1_node);
+	if (match(node, n_mul_x1)) {
+		Node result = Node(OpType::Mult, X1, new Node(createNumberNode(n)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// X*n
 	Node x1_mul_n = Node(OpType::Mult, &x1_node, &n_node);
+	if (match(node, x1_mul_n)) {
+		// (X*0) -> 0
+		if (n == 0) {
+			Node result = createNumberNode(0);
+			logReduce(__FUNCTION__, node, result);
+			reduced_something_ = true;
+			return result;
+		} 
+		// (X*1) -> X
+		else if (n == 1) {
+			Node result = *X1;
+			logReduce(__FUNCTION__, node, result);
+			reduced_something_ = true;
+			return result;
+		}
+	}
+
+	// (commutative) (X*n)*m -> X*(n*m)
 	if (matchComm(node, OpType::Mult, x1_mul_n, m_node)) {
 		Node result = Node(OpType::Mult, X1, new Node(createNumberNode(n * m)));
 		logReduce(__FUNCTION__, node, result);
@@ -158,12 +185,30 @@ Node PostProcessor::reduceMult(const Node& node) {
 		return result;
 	}
 
-	// X1*(-X2) -> (-(X1*X2))
+	// (-X1)*(-X2) -> X1*X2
+	Node neg_x1 = Node(OpType::Negate, &x1_node);
 	const Node* X2 = nullptr;
 	Node x2_node = bindNode(&X2);
 	Node neg_x2 = Node(OpType::Negate, &x2_node);
-	if (matchComm(node, OpType::Mult, x1_node, neg_x2)) {
+	if (matchComm(node, OpType::Mult, neg_x1, neg_x2)) {
+		Node result = Node(OpType::Mult, X1, X2);
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (commutative) (-X1)*X2 -> (-(X1*X2))
+	if (matchComm(node, OpType::Mult, neg_x1, x2_node)) {
 		Node result = Node(OpType::Negate, new Node(OpType::Mult, X1, X2));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (commutative) (n/X)*X -> n
+	Node n_div_x1 = Node(OpType::Div, &n_node, &x1_node);
+	if (matchComm(node, OpType::Mult, n_div_x1, x2_node) && isEqual(*X1, *X2)) {
+		Node result = createNumberNode(n);
 		logReduce(__FUNCTION__, node, result);
 		reduced_something_ = true;
 		return result;
@@ -173,8 +218,17 @@ Node PostProcessor::reduceMult(const Node& node) {
 }
 
 Node PostProcessor::reduceDiv(const Node& node) {
+	// X/X -> 1
+	if (node.type_ == NodeType::BinaryOp &&
+	    node.op_type_ == OpType::Div &&
+		isEqual(*node.op1_, *node.op2_)) {
+		Node result = createNumberNode(1);
+		logReduce(__FUNCTION__, node, result);
+		return result;
+	}
+
 	// (n / m) -> k, if n = m * k
-	int64_t n, m;
+	int64_t n = 0, m = 0;
 	Node n_node = bindNumber(&n);
 	Node m_node = bindNumber(&m);
 	Node n_div_m = Node(OpType::Div, &n_node, &m_node);
@@ -185,13 +239,35 @@ Node PostProcessor::reduceDiv(const Node& node) {
 		return result;
 	}
 
-	// (X/n)/m -> X/(n*m)
+	// X/1 -> X
 	const Node* X = nullptr;
 	Node x_node = bindNode(&X);
 	Node x_div_n = Node(OpType::Div, &x_node, &n_node);
+	if (match(node, x_div_n) && n == 1) {
+		Node result = *X;
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (X/n)/m -> X/(n*m)
 	Node div_node = Node(OpType::Div, &x_div_n, &m_node);
 	if (match(node, div_node)) {
 		Node result = Node(OpType::Div, X, new Node(createNumberNode(n * m)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (n/X)/m -> (n/m)/X
+	Node n_div_x = Node(OpType::Div, &n_node, &x_node);
+	div_node = Node(OpType::Div, &n_div_x, &m_node);
+	if (match(node, div_node)) {
+		Node result = Node(OpType::Div, 
+		                   new Node(OpType::Div, 
+						            new Node(createNumberNode(n)),
+									new Node(createNumberNode(m))),
+						   X);
 		logReduce(__FUNCTION__, node, result);
 		reduced_something_ = true;
 		return result;
@@ -206,11 +282,12 @@ Node PostProcessor::reducePlus(const Node& node) {
 		isEqual(*node.op1_, *node.op2_)) {
 		Node result = Node(OpType::Mult, node.op1_, new Node(createNumberNode(2)));
 		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
 		return result;
 	}
 
 	// n+m -> k, k = n + m
-	int64_t n, m;
+	int64_t n = 0, m = 0;
 	Node n_node = bindNumber(&n);
 	Node m_node = bindNumber(&m);
 	Node n_plus_m = Node(OpType::Plus, &n_node, &m_node);
@@ -221,9 +298,18 @@ Node PostProcessor::reducePlus(const Node& node) {
 		return result;
 	}
 
-	// (commutative) (X+n)+m -> X+(n+m)
+	// replace n+X -> X+n
 	const Node* X1 = nullptr;
 	Node x1_node = bindNode(&X1);
+	Node n_plus_x1 = Node(OpType::Plus, &n_node, &x1_node);
+	if (match(node, n_plus_x1)) {
+		Node result = Node(OpType::Plus, X1, new Node(createNumberNode(n)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (commutative) (X+n)+m -> X+(n+m)
 	Node x1_plus_n = Node(OpType::Plus, &x1_node, &n_node);
 	if (matchComm(node, OpType::Plus, x1_plus_n, m_node)) {
 		Node result = Node(OpType::Plus, X1, new Node(createNumberNode(n + m)));
@@ -238,6 +324,16 @@ Node PostProcessor::reducePlus(const Node& node) {
 	Node x2_node = bindNode(&X2);
 	if (matchComm(node, OpType::Plus, x1_mul_n, x2_node) && isEqual(*X1, *X2)) {
 		Node result = Node(OpType::Mult, X1, new Node(createNumberNode(n + 1)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// X1+(-X2) -> X1-X2
+	Node neg_x2 = Node(OpType::Negate, &x2_node);
+	Node x1_plus_neg_x2 = Node(OpType::Plus, &x1_node, &neg_x2);
+	if (match(node, x1_plus_neg_x2)) {
+		Node result = Node(OpType::Minus, X1, X2);
 		logReduce(__FUNCTION__, node, result);
 		reduced_something_ = true;
 		return result;
@@ -267,7 +363,7 @@ Node PostProcessor::reduceMinus(const Node& node) {
 	}
 
 	// n-m -> k, k = n - m
-	int64_t n, m;
+	int64_t n = 0, m = 0;
 	Node n_node = bindNumber(&n);
 	Node m_node = bindNumber(&m);
 	Node n_minus_m = Node(OpType::Minus, &n_node, &m_node);
