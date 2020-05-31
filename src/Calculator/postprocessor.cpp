@@ -8,10 +8,7 @@ namespace
 
 void logReduce(const char* function_name, const Node& in, const Node& out) {
 	std::cout << "reduction in " << function_name << "(): ";
-	printExpression(in);
-	std::cout << " -> ";
-	printExpression(out);
-	std::cout << std::endl;
+	std::cout << convertExpression(in) << " -> " << convertExpression(out) << std::endl;
 }
 
 bool isEqual(const Node& n1, const Node& n2) {
@@ -39,6 +36,7 @@ bool isEqual(const Node& n1, const Node& n2) {
 	default:
 		assert(0);
 	}
+	return false;
 }
 
 bool match(const Node& node, const Node& pat) {
@@ -105,9 +103,7 @@ std::vector<const Node*> PostProcessor::reduce(std::vector<const Node*> nodes) {
 		Node cur_node = *node;
 		reduced_something_ = true;
 		for (size_t step = 1; reduced_something_; ++step) {
-			std::cout << "step " << step << ". going to reduce ";
-			printExpression(cur_node);
-			std::cout << std::endl;
+			std::cout << "step " << step << ". going to reduce " << convertExpression(cur_node) << std::endl;
 			reduced_something_ = false;
 			cur_node = reduceStep(cur_node);
 		}

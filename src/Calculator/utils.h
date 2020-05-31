@@ -10,4 +10,4 @@ std::string opTypeToString(const OpType type);
 
 void printTree(const Node& root, const std::string& indent = "");
 
-void printExpression(const Node& node);
+std::string convertExpression(const Node& node);

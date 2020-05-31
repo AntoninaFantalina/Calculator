@@ -28,6 +28,7 @@ std::string tokenToString(const Token token) {
 	default:
 		assert(0);
     }
+    return "";
 }
 
 std::string nodeTypeToString(const NodeType type) {
@@ -43,6 +44,7 @@ std::string nodeTypeToString(const NodeType type) {
 	default:
 		assert(0);
     }
+    return "";
 }
 
 std::string opTypeToString(const OpType type) {
@@ -62,6 +64,7 @@ std::string opTypeToString(const OpType type) {
 	default:
 		assert(0);
     }
+    return "";
 }
 
 void printTree(const Node& node, const std::string& indent) {
@@ -90,28 +93,25 @@ void printTree(const Node& node, const std::string& indent) {
     }
 }
 
-void printExpression(const Node& node) {
+std::string convertExpression(const Node& node) {
+    std::string expression = "";
     switch (node.type_) {
     case NodeType::Number:
-        std::cout << std::to_string(node.number_);
+        expression.append(std::to_string(node.number_));
         break;
     case NodeType::Name:
-        std::cout << node.name_;
+        expression.append(node.name_);
         break;
     case NodeType::UnaryOp:
-        std::cout << "(";
-        std::cout << opTypeToString(node.op_type_);
-        printExpression(*node.op1_);
-        std::cout << ")";
+        expression.append("(" + opTypeToString(node.op_type_) + convertExpression(*node.op1_) + ")");
         break;
     case NodeType::BinaryOp:
-        std::cout << "(";
-        printExpression(*node.op1_);
-        std::cout << " " << opTypeToString(node.op_type_) << " ";
-        printExpression(*node.op2_);
-        std::cout << ")";
+        expression.append("(" + convertExpression(*node.op1_) +
+                          " " + opTypeToString(node.op_type_) +
+                          " " + convertExpression(*node.op2_) + ")");
         break;
 	default:
 		assert(0);
     }
+    return expression;
 }
