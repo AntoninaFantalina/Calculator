@@ -12,7 +12,8 @@ private:
     Node reduceStep(const Node& node);
     Node reduceMult(const Node& node);
     Node reduceDiv(const Node& node);
-    Node reduceAdd(const Node& node);
+    Node reducePlus(const Node& node);
+    Node reduceMinus(const Node& node);
     Node reduceNeg(const Node& node);
 
 private:

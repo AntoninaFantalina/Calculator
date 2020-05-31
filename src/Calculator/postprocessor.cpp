@@ -127,7 +127,8 @@ Node PostProcessor::reduceStep(const Node& node) {
 	// for the whole expression:
 	result = reduceMult(result);
 	result = reduceDiv(result);
-	result = reduceAdd(result);
+	result = reducePlus(result);
+	result = reduceMinus(result);
 	result = reduceNeg(result);
 
 	return result;
@@ -198,7 +199,7 @@ Node PostProcessor::reduceDiv(const Node& node) {
 	return node;
 }
 
-Node PostProcessor::reduceAdd(const Node& node) {
+Node PostProcessor::reducePlus(const Node& node) {
 	// X+X -> X*2
 	if (node.type_ == NodeType::BinaryOp &&
 	    node.op_type_ == OpType::Plus &&
@@ -247,6 +248,113 @@ Node PostProcessor::reduceAdd(const Node& node) {
 	Node summ = Node(OpType::Plus, &x1_mul_n, &x2_mul_m);
 	if (match(node, summ) && isEqual(*X1, *X2)) {
 		Node result = Node(OpType::Mult, X1, new Node(createNumberNode(n + m)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	return node;
+}
+
+Node PostProcessor::reduceMinus(const Node& node) {
+	// X-X -> 0
+	if (node.type_ == NodeType::BinaryOp &&
+	    node.op_type_ == OpType::Minus &&
+		isEqual(*node.op1_, *node.op2_)) {
+		Node result = createNumberNode(0);
+		logReduce(__FUNCTION__, node, result);
+		return result;
+	}
+
+	// n-m -> k, k = n - m
+	int64_t n, m;
+	Node n_node = bindNumber(&n);
+	Node m_node = bindNumber(&m);
+	Node n_minus_m = Node(OpType::Minus, &n_node, &m_node);
+	if (match(node, n_minus_m)) {
+		Node result = createNumberNode(n - m);
+		if (n - m < 0) {
+			result = Node(OpType::Negate, new Node(createNumberNode(m - n)));
+		}
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (X+n)-m -> X+(n-m)
+	const Node* X1 = nullptr;
+	Node x1_node = bindNode(&X1);
+	Node x1_plus_n = Node(OpType::Plus, &x1_node, &n_node);
+	Node minus_node = Node(OpType::Minus, &x1_plus_n, &m_node);
+	if (match(node, minus_node)) {
+		Node result = Node(OpType::Plus, X1, new Node(OpType::Minus,
+		                                              new Node(createNumberNode(n)),
+											          new Node(createNumberNode(m))));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// replace n-X -> (-X)+n
+	Node n_minus_x1 = Node(OpType::Minus, &n_node, &x1_node);
+	if (match(node, n_minus_x1)) {
+		Node result = Node(OpType::Plus, new Node(OpType::Negate, X1), new Node(createNumberNode(n)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (X-n)-m -> X-(n+m)
+	Node x1_minus_n = Node(OpType::Minus, &x1_node, &n_node);
+	minus_node = Node(OpType::Minus, &x1_minus_n, &m_node);
+	if (match(node, minus_node)) {
+		Node result = Node(OpType::Minus, X1, new Node(OpType::Plus,
+		                                               new Node(createNumberNode(n)),
+											           new Node(createNumberNode(m))));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (X*n)-X -> X*(n-1)
+	Node x1_mul_n = Node(OpType::Mult, &x1_node, &n_node);
+	const Node* X2 = nullptr;
+	Node x2_node = bindNode(&X2);
+	minus_node = Node(OpType::Minus, &x1_mul_n, &x2_node);
+	if (match(node, minus_node) && isEqual (*X1, *X2)) {
+		Node result = Node(OpType::Mult, X1, new Node(createNumberNode(n - 1)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (-X1)-X2 -> -(X1+X2)
+	Node neg_X1 = Node(OpType::Negate, &x1_node);
+	minus_node = Node(OpType::Minus, &neg_X1, &x2_node);
+	if (match(node, minus_node)) {
+		Node result = Node(OpType::Negate, new Node(OpType::Plus, X1, X2));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (Y - X) - X -> Y
+	const Node* Y = nullptr;
+	Node y_node = bindNode(&Y);
+	Node y_minus_x1 = Node(OpType::Minus, &y_node, &x1_node);
+	minus_node = Node(OpType::Minus, &y_minus_x1, &x2_node);
+	if (match(node, minus_node) && isEqual(*X1, *X2)) {
+		Node result = *Y;
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (X - Y) - X -> (-Y)
+	Node x1_minus_y = Node(OpType::Minus, &x1_node, &y_node);
+	minus_node = Node(OpType::Minus, &x1_minus_y, &x2_node);
+	if (match(node, minus_node) && isEqual(*X1, *X2)) {
+		Node result = Node(OpType::Negate, Y);
 		logReduce(__FUNCTION__, node, result);
 		reduced_something_ = true;
 		return result;
