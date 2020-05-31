@@ -185,10 +185,22 @@ Node PostProcessor::reduceMult(const Node& node) {
 		return result;
 	}
 
-	// (-X1)*(-X2) -> X1*X2
-	Node neg_x1 = Node(OpType::Negate, &x1_node);
+	// (X1*n)*(X2*m) -> (X1*X2)*(n*m)
 	const Node* X2 = nullptr;
 	Node x2_node = bindNode(&X2);
+	Node x2_mul_m = Node(OpType::Mult, &x2_node, &m_node);
+	Node mul_node = Node(OpType::Mult, &x1_mul_n, &x2_mul_m);
+	if (match(node, mul_node)) {
+		Node result = Node(OpType::Mult,
+		                   new Node(OpType::Mult, X1, X2),
+						   new Node(createNumberNode(n * m)));
+		logReduce(__FUNCTION__, node, result);
+		reduced_something_ = true;
+		return result;
+	}
+
+	// (-X1)*(-X2) -> X1*X2
+	Node neg_x1 = Node(OpType::Negate, &x1_node);
 	Node neg_x2 = Node(OpType::Negate, &x2_node);
 	if (matchComm(node, OpType::Mult, neg_x1, neg_x2)) {
 		Node result = Node(OpType::Mult, X1, X2);

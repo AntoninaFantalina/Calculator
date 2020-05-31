@@ -74,6 +74,14 @@ TEST(MultTest, X_Mult_N_Mult_M_2) {
     ASSERT_EQ(convertExpression(*nodes.front()), "(x * 35)");
 }
 
+TEST(MultTest, X1_Mult_N_Mult_X2_Mult_M) {
+    // (X1 * n) * (X2 * m) -> (X1 * X2) * (n * m)
+    std::vector<const Node*> nodes = calculate("(x1 * 3) * (x2 * 7)");
+    ASSERT_EQ(nodes.size(), 1u);
+    ASSERT_TRUE(nodes.front() != nullptr);
+    ASSERT_EQ(convertExpression(*nodes.front()), "((x1 * x2) * 21)");
+}
+
 TEST(MultTest, X1_Mult_Neg_X2) {
     // X1 * (-X2) -> (-(X1 * X2))
     std::vector<const Node*> nodes = calculate("x1 * (-x2)");
