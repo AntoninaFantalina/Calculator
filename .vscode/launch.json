@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Launch",
-            "program": "${workspaceFolder}/build/src/CalculatorApp",
+            "program": "${workspaceFolder}/build/bin/CalculatorApp",
             "args": [],
             "cwd": "${workspaceFolder}"
         }
